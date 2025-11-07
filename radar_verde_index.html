@@ -66,10 +66,6 @@
   <div id="info">
     <h1>Radar Verde</h1>
     <p><b>Parque Estadual do Cantão – Caseara/TO</b></p>
-    <p>Temperatura: <b>35°C</b></p>
-    <p>Umidade: <b>20%</b></p>
-    <p>Vento: <b>30 km/h</b></p>
-    <p>Focos de Calor: <b>3</b></p>
 
     <div class="legend">
       <h3>Legenda de Risco</h3>
@@ -99,10 +95,10 @@
 
     // Lista de riscos
     var riscos = [
-      {cor:'#2ecc71', texto:'Baixo', textoColor:'green'},
-      {cor:'#f1c40f', texto:'Médio', textoColor:'#b7950b'},
-      {cor:'#e67e22', texto:'Alto', textoColor:'#e67e22'},
-      {cor:'#e74c3c', texto:'Crítico', textoColor:'red'}
+      {cor:'#2ecc71', texto:'Baixo'},
+      {cor:'#f1c40f', texto:'Médio'},
+      {cor:'#e67e22', texto:'Alto'},
+      {cor:'#e74c3c', texto:'Crítico'}
     ];
 
     // Áreas fictícias dentro do parque
@@ -193,6 +189,37 @@
         }
       }
     });
+
+    // === Nova parte: Carregar focos reais do INPE (GeoJSON) ===
+    // Substitua a URL abaixo pela URL GeoJSON real que você gerar no BDQueimadas/Terrabrasilis
+    var urlFocos = 'URL_DO_GEOJSON_AQUI';
+
+    fetch(urlFocos)
+      .then(response => response.json())
+      .then(data => {
+        // Adiciona os focos como pontos
+        L.geoJSON(data, {
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+              radius: 5,
+              color: '#ff0000',
+              fillColor: '#ff6600',
+              fillOpacity: 0.7
+            });
+          },
+          onEachFeature: function(feature, layer) {
+            var props = feature.properties;
+            var info = '';
+            if (props && props.data) {
+              info = 'Data: ' + props.data;
+            }
+            layer.bindPopup('Foco de calor' + (info ? '<br>' + info : ''));
+          }
+        }).addTo(map);
+      })
+      .catch(err => {
+        console.error('Erro ao carregar focos de calor:', err);
+      });
   </script>
 </body>
 </html>
