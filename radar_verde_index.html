@@ -1,0 +1,198 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radar Verde - Painel do Cerrado</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+    }
+    #map {
+      height: 100vh;
+      width: 70%;
+    }
+    #info {
+      width: 30%;
+      padding: 20px;
+      background-color: #f7f7f7;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 10px;
+    }
+    .legend {
+      margin-top: 20px;
+    }
+    .legend div {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .color-box {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 5px 0;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .area-controls {
+      margin-top: 15px;
+    }
+    canvas {
+      margin-top: 20px;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="info">
+    <h1>Radar Verde</h1>
+    <p><b>Parque Estadual do Cantão – Caseara/TO</b></p>
+    <p>Temperatura: <b>35°C</b></p>
+    <p>Umidade: <b>20%</b></p>
+    <p>Vento: <b>30 km/h</b></p>
+    <p>Focos de Calor: <b>3</b></p>
+
+    <div class="legend">
+      <h3>Legenda de Risco</h3>
+      <div><div class="color-box" style="background:#2ecc71"></div> Baixo</div>
+      <div><div class="color-box" style="background:#f1c40f"></div> Médio</div>
+      <div><div class="color-box" style="background:#e67e22"></div> Alto</div>
+      <div><div class="color-box" style="background:#e74c3c"></div> Crítico</div>
+    </div>
+
+    <h3>Controle de Áreas</h3>
+    <div id="areaControls" class="area-controls"></div>
+
+    <h3>Histórico de Risco (últimos 7 dias)</h3>
+    <canvas id="graficoRisco" width="250" height="150"></canvas>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Inicializa mapa centrado em Caseara/TO
+    var map = L.map('map').setView([-9.2749, -49.9528], 11);
+
+    // Camada base: imagens de satélite Esri
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye'
+    }).addTo(map);
+
+    // Lista de riscos
+    var riscos = [
+      {cor:'#2ecc71', texto:'Baixo', textoColor:'green'},
+      {cor:'#f1c40f', texto:'Médio', textoColor:'#b7950b'},
+      {cor:'#e67e22', texto:'Alto', textoColor:'#e67e22'},
+      {cor:'#e74c3c', texto:'Crítico', textoColor:'red'}
+    ];
+
+    // Áreas fictícias dentro do parque
+    var areas = [
+      {
+        nome: 'Área Norte',
+        coords: [
+          [-9.20,-49.99],
+          [-9.20,-49.93],
+          [-9.25,-49.93],
+          [-9.25,-49.99]
+        ],
+        riscoIndex: 0
+      },
+      {
+        nome: 'Área Central',
+        coords: [
+          [-9.28,-49.98],
+          [-9.28,-49.94],
+          [-9.33,-49.94],
+          [-9.33,-49.98]
+        ],
+        riscoIndex: 2
+      },
+      {
+        nome: 'Área Sul',
+        coords: [
+          [-9.35,-49.97],
+          [-9.35,-49.93],
+          [-9.40,-49.93],
+          [-9.40,-49.97]
+        ],
+        riscoIndex: 3
+      }
+    ];
+
+    // Criar polígonos
+    areas.forEach((a,i)=>{
+      a.poly = L.polygon(a.coords, {
+        color:riscos[a.riscoIndex].cor,
+        fillColor:riscos[a.riscoIndex].cor,
+        fillOpacity:0.5
+      }).addTo(map)
+        .bindPopup(a.nome+' - Risco '+riscos[a.riscoIndex].texto);
+    });
+
+    // Criar controles (botões) para cada área
+    var areaControlsDiv = document.getElementById('areaControls');
+    areas.forEach((a,i)=>{
+      var btn = document.createElement('button');
+      btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
+      btn.style.backgroundColor = riscos[a.riscoIndex].cor;
+      btn.onclick = function(){
+        // Avança risco dessa área
+        a.riscoIndex = (a.riscoIndex + 1) % riscos.length;
+        a.poly.setStyle({color:riscos[a.riscoIndex].cor, fillColor:riscos[a.riscoIndex].cor});
+        a.poly.bindPopup(a.nome+' - Risco '+riscos[a.riscoIndex].texto);
+        btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
+        btn.style.backgroundColor = riscos[a.riscoIndex].cor;
+      };
+      areaControlsDiv.appendChild(btn);
+    });
+
+    // Gráfico histórico de risco (dados fictícios)
+    var ctx = document.getElementById('graficoRisco').getContext('2d');
+    var grafico = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Dia -6','Dia -5','Dia -4','Dia -3','Dia -2','Ontem','Hoje'],
+        datasets: [{
+          label: 'Índice de Risco Médio (0=Baixo / 3=Crítico)',
+          data: [1,2,2,3,3,2,3],
+          borderColor: '#e74c3c',
+          backgroundColor: 'rgba(231,76,60,0.2)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            min: 0,
+            max: 3,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
