@@ -4,89 +4,80 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Radar Verde - Painel do Cerrado</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
+    @media (max-width: 767.98px) {
+      .row {
+        height: auto !important;
+      }
+      #map-container {
+        height: 50vh;
+      }
+      aside {
+        height: auto !important;
+      }
     }
-    #map {
-      height: 100vh;
-      width: 70%;
-    }
-    #info {
-      width: 30%;
-      padding: 20px;
-      background-color: #f7f7f7;
-      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
-      overflow-y: auto;
-    }
-    h1 {
-      font-size: 1.4rem;
-      margin-bottom: 10px;
-    }
-    .legend {
-      margin-top: 20px;
-    }
-    .legend div {
-      display: flex;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-    .color-box {
-      width: 20px;
-      height: 20px;
-      margin-right: 8px;
-    }
-    button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      margin: 5px 0;
-    }
-    button:hover {
-      background-color: #2980b9;
-    }
-    .area-controls {
-      margin-top: 15px;
-    }
-    canvas {
-      margin-top: 20px;
-      max-width: 100%;
+    #toggle-info-btn {
+      position: absolute;
+      top: 10px;
+      left: 50px; /* Deslocado para a direita para não sobrepor os controlos de zoom */
+      z-index: 401; /* Garante que o botão fique acima dos controles do mapa Leaflet */
     }
   </style>
 </head>
-<body>
-  <div id="map"></div>
-  <div id="info">
-    <h1>Radar Verde</h1>
-    <p><b>Parque Estadual do Cantão – Caseara/TO</b></p>
-    <p>Temperatura: <b>35°C</b></p>
-    <p>Umidade: <b>20%</b></p>
-    <p>Vento: <b>30 km/h</b></p>
-    <p>Focos de Calor: <b>3</b></p>
-
-    <div class="legend">
-      <h3>Legenda de Risco</h3>
-      <div><div class="color-box" style="background:#2ecc71"></div> Baixo</div>
-      <div><div class="color-box" style="background:#f1c40f"></div> Médio</div>
-      <div><div class="color-box" style="background:#e67e22"></div> Alto</div>
-      <div><div class="color-box" style="background:#e74c3c"></div> Crítico</div>
+<body class="bg-light">
+  <div class="container-fluid vh-100 d-flex flex-column p-0">
+    <div class="row flex-grow-1 g-0">
+      <main class="col-lg-8 col-md-7 p-0" id="map-container" style="position: relative;">
+        <div id="map" class="h-100"></div>
+        <button id="toggle-info-btn" class="btn btn-light btn-sm">☰</button>
+      </main>
+      <aside class="col-lg-4 col-md-5 h-100">
+        <div id="info" class="p-3 overflow-auto h-100">
+    <div class="card mb-3">
+        <div class="card-body">
+            <h1 class="card-title h5">Radar Verde</h1>
+            <h6 class="card-subtitle mb-2 text-muted">Parque Estadual do Cantão – Caseara/TO</h6>
+            <p class="card-text mb-1">Temperatura: <b>35°C</b></p>
+            <p class="card-text mb-1">Umidade: <b>20%</b></p>
+            <p class="card-text mb-1">Vento: <b>30 km/h</b></p>
+            <p class="card-text">Focos de Calor: <b>3</b></p>
+        </div>
     </div>
 
-    <h3>Controle de Áreas</h3>
-    <div id="areaControls" class="area-controls"></div>
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Legenda de Risco</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #2ecc71;"></span> Baixo</li>
+                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #f1c40f;"></span> Médio</li>
+                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #e67e22;"></span> Alto</li>
+                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #e74c3c;"></span> Crítico</li>
+            </ul>
+        </div>
+    </div>
 
-    <h3>Histórico de Risco (últimos 7 dias)</h3>
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Controle de Áreas</h5>
+            <div id="areaControls" class="d-grid gap-2"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
     <canvas id="graficoRisco" width="250" height="150"></canvas>
+        </div>
+    </div>
+        </div>
+      </aside>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
   <script>
     // Inicializa mapa centrado em Caseara/TO
     var map = L.map('map').setView([-9.2749, -49.9528], 11);
@@ -152,6 +143,7 @@
     var areaControlsDiv = document.getElementById('areaControls');
     areas.forEach((a,i)=>{
       var btn = document.createElement('button');
+      btn.className = 'btn text-white';
       btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
       btn.style.backgroundColor = riscos[a.riscoIndex].cor;
       btn.onclick = function(){
@@ -191,6 +183,27 @@
           }
         }
       }
+    });
+
+    // Lógica para alternar a visibilidade do painel de informações
+    const toggleBtn = document.getElementById('toggle-info-btn');
+    const infoAside = document.querySelector('aside');
+    const mapContainer = document.getElementById('map-container');
+
+    toggleBtn.addEventListener('click', () => {
+      infoAside.classList.toggle('d-none');
+
+      // Alterna as classes de coluna do Bootstrap para o mapa ocupar a tela inteira
+      mapContainer.classList.toggle('col-lg-8');
+      mapContainer.classList.toggle('col-md-7');
+      mapContainer.classList.toggle('col-lg-12');
+      mapContainer.classList.toggle('col-md-12');
+
+      // Força o mapa a se redimensionar para o novo tamanho do contêiner
+      // O timeout garante que a transição do DOM foi concluída antes de redimensionar o mapa
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 150);
     });
   </script>
 </body>
