@@ -124,3 +124,39 @@ toggleBtn.addEventListener('click', () => {
     map.invalidateSize();
   }, 150);
 });
+
+  // === Nova parte: Carregar focos reais do INPE (GeoJSON) ===
+  // Substitua a URL abaixo pela URL GeoJSON real que você gerar no BDQueimadas/Terrabrasilis
+  var urlFocos = 'queimadas_consolidadas_2015-2024.geojson';
+
+  fetch(urlFocos)
+    .then(response => response.json())
+    .then(data => {
+      // Adiciona os focos como pontos
+      L.geoJSON(data, {
+        pointToLayer: function(feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: 5,
+            color: '#ff0000',
+            fillColor: '#ff6600',
+            fillOpacity: 0.7
+          });
+        },
+        onEachFeature: function(feature, layer) {
+        
+          var props = feature.properties;
+          //console.log(props);
+          var info = '';
+          if (props) {
+            info = '<b>DataHora:</b> ' + props.DataHora +
+                   '<br><b>Temperatura:</b> ' + props.DiaSemChuva +
+                   '<br><b>Precipitacao:</b> ' + props.Precipitacao +
+                    '<br><b>RiscoFogo:</b> ' + props.RiscoFogo;
+          }
+          layer.bindPopup((info ? '' + info : ''));
+        }
+      }).addTo(map);
+    })
+    .catch(err => {
+      console.error('Erro ao carregar focos de calor:', err);
+    });
