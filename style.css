@@ -3,7 +3,7 @@
     height: auto !important;
   }
   #map-container {
-    height: 50vh;
+    /* A altura agora é controlada via JavaScript */
   }
   aside {
     height: auto !important;

@@ -110,13 +110,20 @@ const infoAside = document.querySelector('aside');
 const mapContainer = document.getElementById('map-container');
 
 toggleBtn.addEventListener('click', () => {
-  infoAside.classList.toggle('d-none');
+  const isHidden = infoAside.classList.toggle('d-none');
 
   // Alterna as classes de coluna do Bootstrap para o mapa ocupar a tela inteira
-  mapContainer.classList.toggle('col-lg-8');
-  mapContainer.classList.toggle('col-md-7');
-  mapContainer.classList.toggle('col-lg-12');
-  mapContainer.classList.toggle('col-md-12');
+  mapContainer.classList.toggle('col-lg-8', !isHidden);
+  mapContainer.classList.toggle('col-md-7', !isHidden);
+  mapContainer.classList.toggle('col-12', !isHidden); // Adicionado para telas pequenas
+  mapContainer.classList.toggle('col-lg-12', isHidden);
+  mapContainer.classList.toggle('col-md-12', isHidden);
+  mapContainer.classList.toggle('col-12', isHidden); // Adicionado para telas pequenas
+
+  // Ajusta a altura do mapa em telas móveis
+  if (window.innerWidth < 768) {
+    mapContainer.style.height = isHidden ? '100vh' : '50vh';
+  }
 
   // Força o mapa a se redimensionar para o novo tamanho do contêiner
   // O timeout garante que a transição do DOM foi concluída antes de redimensionar o mapa
