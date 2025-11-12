@@ -140,147 +140,102 @@ toggleBtn.addEventListener('click', () => {
   }, 150);
 });
 
-  // === Nova parte: Carregar focos reais do INPE (GeoJSON) ===
-  // Substitua a URL abaixo pela URL GeoJSON real que você gerar no BDQueimadas/Terrabrasilis
-  var urlFocos = 'queimadas_consolidadas_2015-2024.geojson';
+  // === Lógica dos Gráficos Refatorada ===
+  const chartInstances = {};
 
+  function destroyCharts() {
+    Object.values(chartInstances).forEach(chart => {
+      if (chart) chart.destroy();
+    });
+  }
+
+  function processChartData(features) {
+    const dadosAgrupados = features.reduce((acc, feature) => {
+      const props = feature.properties;
+      if (!props.DataHora || props.RiscoFogo === null || props.Precipitacao === null || props.DiaSemChuva === null) {
+        return acc;
+      }
+      const dataHora = new Date(props.DataHora.replace(' ', 'T'));
+      if (isNaN(dataHora.getTime())) {
+        return acc;
+      }
+      const ano = dataHora.getFullYear();
+      const mes = dataHora.getMonth() + 1;
+      const chave = `${ano}-${mes.toString().padStart(2, '0')}`;
+      if (!acc[chave]) {
+        acc[chave] = { RiscoFogo: [], Precipitacao: [], DiaSemChuva: [] };
+      }
+      const riscoFogo = parseFloat(props.RiscoFogo);
+      const precipitacao = parseFloat(props.Precipitacao);
+      const diaSemChuva = parseInt(props.DiaSemChuva);
+      if (!isNaN(riscoFogo) && !isNaN(precipitacao) && !isNaN(diaSemChuva)) {
+        acc[chave].RiscoFogo.push(riscoFogo);
+        acc[chave].Precipitacao.push(precipitacao);
+        acc[chave].DiaSemChuva.push(diaSemChuva);
+      }
+      return acc;
+    }, {});
+
+    const labels = Object.keys(dadosAgrupados).sort();
+    const calcularMedia = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    return {
+      labels,
+      avgRiscoFogo: labels.map(chave => calcularMedia(dadosAgrupados[chave].RiscoFogo)),
+      avgPrecipitacao: labels.map(chave => calcularMedia(dadosAgrupados[chave].Precipitacao)),
+      avgDiaSemChuva: labels.map(chave => calcularMedia(dadosAgrupados[chave].DiaSemChuva)),
+    };
+  }
+
+  function createCharts(chartData) {
+    destroyCharts();
+    const { labels, avgDiaSemChuva, avgPrecipitacao, avgRiscoFogo } = chartData;
+    const criarGrafico = (ctxId, titulo, datasets, options = {}) => {
+      const ctx = document.getElementById(ctxId).getContext('2d');
+      chartInstances[ctxId] = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' }, title: { display: true, text: titulo } },
+          scales: { x: { title: { display: true, text: 'Mês/Ano' } } },
+          ...options,
+        }
+      });
+    };
+    criarGrafico('graficoDiaSemChuva', 'Média de Dias Sem Chuva', [{ label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', backgroundColor: '#ffc10780' }]);
+    criarGrafico('graficoPrecipitacao', 'Média de Precipitação (mm)', [{ label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', backgroundColor: '#0d6efd80' }]);
+    criarGrafico('graficoRiscoFogo', 'Média de Risco de Fogo', [{ label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545', backgroundColor: '#dc354580' }]);
+    criarGrafico('graficoChuvaPrecipitacao', 'Dias Sem Chuva vs. Precipitação', [
+      { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', yAxisID: 'y' },
+      { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', yAxisID: 'y1' }
+    ], { scales: { y: { position: 'left', title: { display: true, text: 'Dias' } }, y1: { position: 'right', title: { display: true, text: 'mm' }, grid: { drawOnChartArea: false } } } });
+    criarGrafico('graficoCompleto', 'Análise Completa', [
+      { label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545' },
+      { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd' },
+      { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107' }
+    ]);
+  }
+
+  // === Nova parte: Carregar focos reais do INPE (GeoJSON) ===
+  var urlFocos = 'queimadas_consolidadas_2015-2024.geojson';
   fetch(urlFocos)
     .then(response => response.json())
     .then(data => {
-      // Adiciona os focos como pontos
       L.geoJSON(data, {
-        pointToLayer: function(feature, latlng) {
-          return L.circleMarker(latlng, {
-            radius: 5,
-            color: '#ff0000',
-            fillColor: '#ff6600',
-            fillOpacity: 0.7
-          });
-        },
-        onEachFeature: function(feature, layer) {
-        
-          var props = feature.properties;
-          //console.log(props);
-          var info = '';
+        pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 5, color: '#ff0000', fillColor: '#ff6600', fillOpacity: 0.7 }),
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
           if (props) {
-            info = '<b>DataHora:</b> ' + props.DataHora +
-                   '<br><b>DiaSemChuva:</b> ' + props.DiaSemChuva +
-                   '<br><b>Precipitacao:</b> ' + props.Precipitacao +
-                    '<br><b>RiscoFogo:</b> ' + props.RiscoFogo;
+            const info = `<b>DataHora:</b> ${props.DataHora}<br><b>DiaSemChuva:</b> ${props.DiaSemChuva}<br><b>Precipitacao:</b> ${props.Precipitacao}<br><b>RiscoFogo:</b> ${props.RiscoFogo}`;
+            layer.bindPopup(info);
           }
-          layer.bindPopup((info ? '' + info : ''));
         }
       }).addTo(map);
-
-      // --- Início da Lógica dos Gráficos ---
-
-      // 1. Processar e agrupar os dados
-      const dadosAgrupados = data.features.reduce((acc, feature) => {
-        const props = feature.properties;
-        if (!props.DataHora || props.RiscoFogo === null || props.Precipitacao === null || props.DiaSemChuva === null) {
-          return acc;
-        }
-
-        const dataHora = new Date(props.DataHora.replace(' ', 'T'));
-        if (isNaN(dataHora)) return acc;
-
-        const ano = dataHora.getFullYear();
-        const mes = dataHora.getMonth() + 1;
-        const chave = `${ano}-${mes.toString().padStart(2, '0')}`;
-
-        if (!acc[chave]) {
-          acc[chave] = {
-            RiscoFogo: [],
-            Precipitacao: [],
-            DiaSemChuva: [],
-          };
-        }
-
-        acc[chave].RiscoFogo.push(props.RiscoFogo);
-        acc[chave].Precipitacao.push(props.Precipitacao);
-        acc[chave].DiaSemChuva.push(props.DiaSemChuva);
-
-        return acc;
-      }, {});
-
-      // 2. Calcular as médias e preparar os dados para os gráficos
-      const labels = Object.keys(dadosAgrupados).sort();
-
-      const calcularMedia = (chave, propriedade) => {
-        const valores = dadosAgrupados[chave][propriedade];
-        if (valores.length === 0) return 0;
-        const soma = valores.reduce((a, b) => a + b, 0);
-        return soma / valores.length;
-      };
-
-      const avgRiscoFogo = labels.map(chave => calcularMedia(chave, 'RiscoFogo'));
-      const avgPrecipitacao = labels.map(chave => calcularMedia(chave, 'Precipitacao'));
-      const avgDiaSemChuva = labels.map(chave => calcularMedia(chave, 'DiaSemChuva'));
-
-      // 3. Função auxiliar para criar gráficos
-      function criarGrafico(ctx, titulo, datasets, options = {}) {
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: datasets
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'top' },
-              title: { display: true, text: titulo }
-            },
-            scales: {
-              x: { title: { display: true, text: 'Mês/Ano' } }
-            },
-            ...options,
-          }
-        });
-      }
-
-      // 4. Criar os gráficos
-      criarGrafico(
-        document.getElementById('graficoDiaSemChuva').getContext('2d'),
-        'Média de Dias Sem Chuva por Mês',
-        [{ label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', backgroundColor: '#ffc10780', fill: true }]
-      );
-
-      criarGrafico(
-        document.getElementById('graficoPrecipitacao').getContext('2d'),
-        'Média de Precipitação (mm) por Mês',
-        [{ label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', backgroundColor: '#0d6efd80', fill: true }]
-      );
-
-      criarGrafico(
-        document.getElementById('graficoRiscoFogo').getContext('2d'),
-        'Média de Risco de Fogo por Mês',
-        [{ label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545', backgroundColor: '#dc354580', fill: true }]
-      );
-
-      criarGrafico(
-        document.getElementById('graficoChuvaPrecipitacao').getContext('2d'),
-        'Dias Sem Chuva vs. Precipitação',
-        [
-          { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', yAxisID: 'y' },
-          { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', yAxisID: 'y1' }
-        ],
-        { scales: { y: { position: 'left', title: {display: true, text: 'Dias'} }, y1: { position: 'right', title: {display: true, text: 'mm'}, grid: { drawOnChartArea: false } } } }
-      );
-
-      criarGrafico(
-        document.getElementById('graficoCompleto').getContext('2d'),
-        'Análise Completa de Queimadas',
-        [
-          { label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545' },
-          { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd' },
-          { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107' }
-        ]
-      );
+      const chartData = processChartData(data.features);
+      createCharts(chartData);
     })
-    .catch(err => {
-      console.error('Erro ao carregar focos de calor:', err);
-    });
+    .catch(err => console.error('Erro ao carregar focos de calor:', err));
 
   // --- Lógica para Adicionar Novos Pontos ---
 
@@ -320,19 +275,16 @@ toggleBtn.addEventListener('click', () => {
     novosPontosLayer.addData({ type: 'FeatureCollection', features: pontosSalvos });
   }
 
-  // Obter localização do usuário
-  btnLocalizacao.addEventListener('click', () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(position => {
-        latInput.value = position.coords.latitude.toFixed(6);
-        lonInput.value = position.coords.longitude.toFixed(6);
-      }, error => {
-        alert('Não foi possível obter a localização. Verifique as permissões do seu navegador.');
-        console.error(error);
-      });
-    } else {
-      alert('Geolocalização não é suportada pelo seu navegador.');
-    }
+  // Adiciona um listener de clique no mapa para obter coordenadas
+  map.on('click', function(e) {
+    latInput.value = e.latlng.lat.toFixed(6);
+    lonInput.value = e.latlng.lng.toFixed(6);
+    // Opcional: focar no formulário ou abrir um popup de confirmação
+    document.getElementById('datahora').focus();
+    L.popup()
+     .setLatLng(e.latlng)
+     .setContent(`Coordenadas selecionadas: <br> ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`)
+     .openOn(map);
   });
 
   // Salvar novo ponto
