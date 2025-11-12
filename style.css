@@ -1,0 +1,17 @@
+@media (max-width: 767.98px) {
+  .row {
+    height: auto !important;
+  }
+  #map-container {
+    /* A altura agora é controlada via JavaScript */
+  }
+  aside {
+    height: auto !important;
+  }
+}
+#toggle-info-btn {
+  position: absolute;
+  top: 10px;
+  left: 50px; /* Deslocado para a direita para não sobrepor os controlos de zoom */
+  z-index: 401; /* Garante que o botão fique acima dos controles do mapa Leaflet */
+}
