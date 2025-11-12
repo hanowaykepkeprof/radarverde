@@ -156,7 +156,7 @@ toggleBtn.addEventListener('click', () => {
           var info = '';
           if (props) {
             info = '<b>DataHora:</b> ' + props.DataHora +
-                   '<br><b>Temperatura:</b> ' + props.DiaSemChuva +
+                   '<br><b>DiaSemChuva:</b> ' + props.DiaSemChuva +
                    '<br><b>Precipitacao:</b> ' + props.Precipitacao +
                     '<br><b>RiscoFogo:</b> ' + props.RiscoFogo;
           }
