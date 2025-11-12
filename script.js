@@ -109,6 +109,14 @@ const toggleBtn = document.getElementById('toggle-info-btn');
 const infoAside = document.querySelector('aside');
 const mapContainer = document.getElementById('map-container');
 
+// Ajuste inicial para telas móveis
+if (window.innerWidth < 768) {
+  infoAside.classList.add('d-none');
+  mapContainer.style.height = '100vh';
+  mapContainer.classList.add('col-12');
+  setTimeout(() => map.invalidateSize(), 150);
+}
+
 toggleBtn.addEventListener('click', () => {
   const isHidden = infoAside.classList.toggle('d-none');
 
@@ -163,7 +171,215 @@ toggleBtn.addEventListener('click', () => {
           layer.bindPopup((info ? '' + info : ''));
         }
       }).addTo(map);
+
+      // --- Início da Lógica dos Gráficos ---
+
+      // 1. Processar e agrupar os dados
+      const dadosAgrupados = data.features.reduce((acc, feature) => {
+        const props = feature.properties;
+        if (!props.DataHora || props.RiscoFogo === null || props.Precipitacao === null || props.DiaSemChuva === null) {
+          return acc;
+        }
+
+        const dataHora = new Date(props.DataHora.replace(' ', 'T'));
+        if (isNaN(dataHora)) return acc;
+
+        const ano = dataHora.getFullYear();
+        const mes = dataHora.getMonth() + 1;
+        const chave = `${ano}-${mes.toString().padStart(2, '0')}`;
+
+        if (!acc[chave]) {
+          acc[chave] = {
+            RiscoFogo: [],
+            Precipitacao: [],
+            DiaSemChuva: [],
+          };
+        }
+
+        acc[chave].RiscoFogo.push(props.RiscoFogo);
+        acc[chave].Precipitacao.push(props.Precipitacao);
+        acc[chave].DiaSemChuva.push(props.DiaSemChuva);
+
+        return acc;
+      }, {});
+
+      // 2. Calcular as médias e preparar os dados para os gráficos
+      const labels = Object.keys(dadosAgrupados).sort();
+
+      const calcularMedia = (chave, propriedade) => {
+        const valores = dadosAgrupados[chave][propriedade];
+        if (valores.length === 0) return 0;
+        const soma = valores.reduce((a, b) => a + b, 0);
+        return soma / valores.length;
+      };
+
+      const avgRiscoFogo = labels.map(chave => calcularMedia(chave, 'RiscoFogo'));
+      const avgPrecipitacao = labels.map(chave => calcularMedia(chave, 'Precipitacao'));
+      const avgDiaSemChuva = labels.map(chave => calcularMedia(chave, 'DiaSemChuva'));
+
+      // 3. Função auxiliar para criar gráficos
+      function criarGrafico(ctx, titulo, datasets, options = {}) {
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' },
+              title: { display: true, text: titulo }
+            },
+            scales: {
+              x: { title: { display: true, text: 'Mês/Ano' } }
+            },
+            ...options,
+          }
+        });
+      }
+
+      // 4. Criar os gráficos
+      criarGrafico(
+        document.getElementById('graficoDiaSemChuva').getContext('2d'),
+        'Média de Dias Sem Chuva por Mês',
+        [{ label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', backgroundColor: '#ffc10780', fill: true }]
+      );
+
+      criarGrafico(
+        document.getElementById('graficoPrecipitacao').getContext('2d'),
+        'Média de Precipitação (mm) por Mês',
+        [{ label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', backgroundColor: '#0d6efd80', fill: true }]
+      );
+
+      criarGrafico(
+        document.getElementById('graficoRiscoFogo').getContext('2d'),
+        'Média de Risco de Fogo por Mês',
+        [{ label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545', backgroundColor: '#dc354580', fill: true }]
+      );
+
+      criarGrafico(
+        document.getElementById('graficoChuvaPrecipitacao').getContext('2d'),
+        'Dias Sem Chuva vs. Precipitação',
+        [
+          { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', yAxisID: 'y' },
+          { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', yAxisID: 'y1' }
+        ],
+        { scales: { y: { position: 'left', title: {display: true, text: 'Dias'} }, y1: { position: 'right', title: {display: true, text: 'mm'}, grid: { drawOnChartArea: false } } } }
+      );
+
+      criarGrafico(
+        document.getElementById('graficoCompleto').getContext('2d'),
+        'Análise Completa de Queimadas',
+        [
+          { label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545' },
+          { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd' },
+          { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107' }
+        ]
+      );
     })
     .catch(err => {
       console.error('Erro ao carregar focos de calor:', err);
     });
+
+  // --- Lógica para Adicionar Novos Pontos ---
+
+  const formNovoPonto = document.getElementById('formNovoPonto');
+  const btnLocalizacao = document.getElementById('btnLocalizacao');
+  const btnBaixarPontos = document.getElementById('btnBaixarPontos');
+  const latInput = document.getElementById('latitude');
+  const lonInput = document.getElementById('longitude');
+
+  // Camada para os novos pontos adicionados pelo usuário
+  const novosPontosLayer = L.geoJSON(null, {
+    pointToLayer: (feature, latlng) => {
+      return L.marker(latlng, {
+        icon: L.icon({ // Ícone customizado para diferenciar
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+      });
+    },
+    onEachFeature: function(feature, layer) {
+      const props = feature.properties;
+      const info = `<b>Data/Hora:</b> ${props.DataHora}<br>
+                    <b>Dias S/ Chuva:</b> ${props.DiaSemChuva}<br>
+                    <b>Precipitação:</b> ${props.Precipitacao} mm<br>
+                    <b>Risco de Fogo:</b> ${props.RiscoFogo}`;
+      layer.bindPopup(info);
+    }
+  }).addTo(map);
+
+  // Carrega pontos salvos do localStorage ao iniciar
+  let pontosSalvos = JSON.parse(localStorage.getItem('novosPontos')) || [];
+  if (pontosSalvos.length > 0) {
+    novosPontosLayer.addData({ type: 'FeatureCollection', features: pontosSalvos });
+  }
+
+  // Obter localização do usuário
+  btnLocalizacao.addEventListener('click', () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(position => {
+        latInput.value = position.coords.latitude.toFixed(6);
+        lonInput.value = position.coords.longitude.toFixed(6);
+      }, error => {
+        alert('Não foi possível obter a localização. Verifique as permissões do seu navegador.');
+        console.error(error);
+      });
+    } else {
+      alert('Geolocalização não é suportada pelo seu navegador.');
+    }
+  });
+
+  // Salvar novo ponto
+  formNovoPonto.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const novoPonto = {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [parseFloat(lonInput.value), parseFloat(latInput.value)]
+      },
+      properties: {
+        DataHora: new Date(document.getElementById('datahora').value).toISOString(),
+        DiaSemChuva: parseInt(document.getElementById('diasemchuva').value),
+        Precipitacao: parseFloat(document.getElementById('precipitacao').value),
+        RiscoFogo: parseFloat(document.getElementById('riscofogo').value)
+      }
+    };
+
+    // Adiciona à camada do mapa
+    novosPontosLayer.addData(novoPonto);
+
+    // Salva no array e no localStorage
+    pontosSalvos.push(novoPonto);
+    localStorage.setItem('novosPontos', JSON.stringify(pontosSalvos));
+
+    alert('Ponto salvo com sucesso!');
+    formNovoPonto.reset();
+  });
+
+  // Baixar pontos salvos
+  btnBaixarPontos.addEventListener('click', () => {
+    if (pontosSalvos.length === 0) {
+      alert('Nenhum ponto salvo para baixar.');
+      return;
+    }
+
+    const dataStr = JSON.stringify({
+      type: 'FeatureCollection',
+      features: pontosSalvos
+    }, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/geo+json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pontos_personalizados_${new Date().toISOString().slice(0,10)}.geojson`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
