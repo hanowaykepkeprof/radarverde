@@ -109,14 +109,6 @@ const toggleBtn = document.getElementById('toggle-info-btn');
 const infoAside = document.querySelector('aside');
 const mapContainer = document.getElementById('map-container');
 
-// Ajuste inicial para telas móveis
-if (window.innerWidth < 768) {
-  infoAside.classList.add('d-none');
-  mapContainer.style.height = '100vh';
-  mapContainer.classList.add('col-12');
-  setTimeout(() => map.invalidateSize(), 150);
-}
-
 toggleBtn.addEventListener('click', () => {
   const isHidden = infoAside.classList.toggle('d-none');
 
@@ -140,198 +132,38 @@ toggleBtn.addEventListener('click', () => {
   }, 150);
 });
 
-  // === Lógica dos Gráficos Refatorada ===
-  const chartInstances = {};
-
-  function destroyCharts() {
-    Object.values(chartInstances).forEach(chart => {
-      if (chart) chart.destroy();
-    });
-  }
-
-  function processChartData(features) {
-    const dadosAgrupados = features.reduce((acc, feature) => {
-      const props = feature.properties;
-      if (!props.DataHora || props.RiscoFogo === null || props.Precipitacao === null || props.DiaSemChuva === null) {
-        return acc;
-      }
-      const dataHora = new Date(props.DataHora.replace(' ', 'T'));
-      if (isNaN(dataHora.getTime())) {
-        return acc;
-      }
-      const ano = dataHora.getFullYear();
-      const mes = dataHora.getMonth() + 1;
-      const chave = `${ano}-${mes.toString().padStart(2, '0')}`;
-      if (!acc[chave]) {
-        acc[chave] = { RiscoFogo: [], Precipitacao: [], DiaSemChuva: [] };
-      }
-      const riscoFogo = parseFloat(props.RiscoFogo);
-      const precipitacao = parseFloat(props.Precipitacao);
-      const diaSemChuva = parseInt(props.DiaSemChuva);
-      if (!isNaN(riscoFogo) && !isNaN(precipitacao) && !isNaN(diaSemChuva)) {
-        acc[chave].RiscoFogo.push(riscoFogo);
-        acc[chave].Precipitacao.push(precipitacao);
-        acc[chave].DiaSemChuva.push(diaSemChuva);
-      }
-      return acc;
-    }, {});
-
-    const labels = Object.keys(dadosAgrupados).sort();
-    const calcularMedia = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-    return {
-      labels,
-      avgRiscoFogo: labels.map(chave => calcularMedia(dadosAgrupados[chave].RiscoFogo)),
-      avgPrecipitacao: labels.map(chave => calcularMedia(dadosAgrupados[chave].Precipitacao)),
-      avgDiaSemChuva: labels.map(chave => calcularMedia(dadosAgrupados[chave].DiaSemChuva)),
-    };
-  }
-
-  function createCharts(chartData) {
-    destroyCharts();
-    const { labels, avgDiaSemChuva, avgPrecipitacao, avgRiscoFogo } = chartData;
-    const criarGrafico = (ctxId, titulo, datasets, options = {}) => {
-      const ctx = document.getElementById(ctxId).getContext('2d');
-      chartInstances[ctxId] = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' }, title: { display: true, text: titulo } },
-          scales: { x: { title: { display: true, text: 'Mês/Ano' } } },
-          ...options,
-        }
-      });
-    };
-    criarGrafico('graficoDiaSemChuva', 'Média de Dias Sem Chuva', [{ label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', backgroundColor: '#ffc10780' }]);
-    criarGrafico('graficoPrecipitacao', 'Média de Precipitação (mm)', [{ label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', backgroundColor: '#0d6efd80' }]);
-    criarGrafico('graficoRiscoFogo', 'Média de Risco de Fogo', [{ label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545', backgroundColor: '#dc354580' }]);
-    criarGrafico('graficoChuvaPrecipitacao', 'Dias Sem Chuva vs. Precipitação', [
-      { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107', yAxisID: 'y' },
-      { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd', yAxisID: 'y1' }
-    ], { scales: { y: { position: 'left', title: { display: true, text: 'Dias' } }, y1: { position: 'right', title: { display: true, text: 'mm' }, grid: { drawOnChartArea: false } } } });
-    criarGrafico('graficoCompleto', 'Análise Completa', [
-      { label: 'Risco de Fogo', data: avgRiscoFogo, borderColor: '#dc3545' },
-      { label: 'Precipitação (mm)', data: avgPrecipitacao, borderColor: '#0d6efd' },
-      { label: 'Dias Sem Chuva', data: avgDiaSemChuva, borderColor: '#ffc107' }
-    ]);
-  }
-
   // === Nova parte: Carregar focos reais do INPE (GeoJSON) ===
+  // Substitua a URL abaixo pela URL GeoJSON real que você gerar no BDQueimadas/Terrabrasilis
   var urlFocos = 'queimadas_consolidadas_2015-2024.geojson';
+
   fetch(urlFocos)
     .then(response => response.json())
     .then(data => {
+      // Adiciona os focos como pontos
       L.geoJSON(data, {
-        pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 5, color: '#ff0000', fillColor: '#ff6600', fillOpacity: 0.7 }),
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
+        pointToLayer: function(feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: 5,
+            color: '#ff0000',
+            fillColor: '#ff6600',
+            fillOpacity: 0.7
+          });
+        },
+        onEachFeature: function(feature, layer) {
+
+          var props = feature.properties;
+          //console.log(props);
+          var info = '';
           if (props) {
-            const info = `<b>DataHora:</b> ${props.DataHora}<br><b>DiaSemChuva:</b> ${props.DiaSemChuva}<br><b>Precipitacao:</b> ${props.Precipitacao}<br><b>RiscoFogo:</b> ${props.RiscoFogo}`;
-            layer.bindPopup(info);
+            info = '<b>DataHora:</b> ' + props.DataHora +
+                   '<br><b>DiaSemChuva:</b> ' + props.DiaSemChuva +
+                   '<br><b>Precipitacao:</b> ' + props.Precipitacao +
+                    '<br><b>RiscoFogo:</b> ' + props.RiscoFogo;
           }
+          layer.bindPopup((info ? '' + info : ''));
         }
       }).addTo(map);
-      const chartData = processChartData(data.features);
-      createCharts(chartData);
     })
-    .catch(err => console.error('Erro ao carregar focos de calor:', err));
-
-  // --- Lógica para Adicionar Novos Pontos ---
-
-  const formNovoPonto = document.getElementById('formNovoPonto');
-  const btnLocalizacao = document.getElementById('btnLocalizacao');
-  const btnBaixarPontos = document.getElementById('btnBaixarPontos');
-  const latInput = document.getElementById('latitude');
-  const lonInput = document.getElementById('longitude');
-
-  // Camada para os novos pontos adicionados pelo usuário
-  const novosPontosLayer = L.geoJSON(null, {
-    pointToLayer: (feature, latlng) => {
-      return L.marker(latlng, {
-        icon: L.icon({ // Ícone customizado para diferenciar
-            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-      });
-    },
-    onEachFeature: function(feature, layer) {
-      const props = feature.properties;
-      const info = `<b>Data/Hora:</b> ${props.DataHora}<br>
-                    <b>Dias S/ Chuva:</b> ${props.DiaSemChuva}<br>
-                    <b>Precipitação:</b> ${props.Precipitacao} mm<br>
-                    <b>Risco de Fogo:</b> ${props.RiscoFogo}`;
-      layer.bindPopup(info);
-    }
-  }).addTo(map);
-
-  // Carrega pontos salvos do localStorage ao iniciar
-  let pontosSalvos = JSON.parse(localStorage.getItem('novosPontos')) || [];
-  if (pontosSalvos.length > 0) {
-    novosPontosLayer.addData({ type: 'FeatureCollection', features: pontosSalvos });
-  }
-
-  // Adiciona um listener de clique no mapa para obter coordenadas
-  map.on('click', function(e) {
-    latInput.value = e.latlng.lat.toFixed(6);
-    lonInput.value = e.latlng.lng.toFixed(6);
-    // Opcional: focar no formulário ou abrir um popup de confirmação
-    document.getElementById('datahora').focus();
-    L.popup()
-     .setLatLng(e.latlng)
-     .setContent(`Coordenadas selecionadas: <br> ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`)
-     .openOn(map);
-  });
-
-  // Salvar novo ponto
-  formNovoPonto.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const novoPonto = {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [parseFloat(lonInput.value), parseFloat(latInput.value)]
-      },
-      properties: {
-        DataHora: new Date(document.getElementById('datahora').value).toISOString(),
-        DiaSemChuva: parseInt(document.getElementById('diasemchuva').value),
-        Precipitacao: parseFloat(document.getElementById('precipitacao').value),
-        RiscoFogo: parseFloat(document.getElementById('riscofogo').value)
-      }
-    };
-
-    // Adiciona à camada do mapa
-    novosPontosLayer.addData(novoPonto);
-
-    // Salva no array e no localStorage
-    pontosSalvos.push(novoPonto);
-    localStorage.setItem('novosPontos', JSON.stringify(pontosSalvos));
-
-    alert('Ponto salvo com sucesso!');
-    formNovoPonto.reset();
-  });
-
-  // Baixar pontos salvos
-  btnBaixarPontos.addEventListener('click', () => {
-    if (pontosSalvos.length === 0) {
-      alert('Nenhum ponto salvo para baixar.');
-      return;
-    }
-
-    const dataStr = JSON.stringify({
-      type: 'FeatureCollection',
-      features: pontosSalvos
-    }, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/geo+json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `pontos_personalizados_${new Date().toISOString().slice(0,10)}.geojson`;
-    link.click();
-    URL.revokeObjectURL(url);
-  });
+    .catch(err => {
+      console.error('Erro ao carregar focos de calor:', err);
+    });
