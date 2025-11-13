@@ -150,7 +150,7 @@ toggleBtn.addEventListener('click', () => {
           });
         },
         onEachFeature: function(feature, layer) {
-        
+
           var props = feature.properties;
           //console.log(props);
           var info = '';

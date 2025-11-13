@@ -49,7 +49,55 @@
 
     <div class="card">
         <div class="card-body">
-    <canvas id="graficoRisco" width="250" height="150"></canvas>
+            <canvas id="graficoRisco" width="250" height="150"></canvas>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Análise de Dados de Queimadas</h5>
+            <div class="chart-container"><canvas id="graficoDiaSemChuva"></canvas></div>
+            <div class="chart-container"><canvas id="graficoPrecipitacao"></canvas></div>
+            <div class="chart-container"><canvas id="graficoRiscoFogo"></canvas></div>
+            <div class="chart-container"><canvas id="graficoChuvaPrecipitacao"></canvas></div>
+            <div class="chart-container"><canvas id="graficoCompleto"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Adicionar Novo Ponto de Queimada</h5>
+            <form id="formNovoPonto">
+                <div class="mb-2">
+                    <label for="latitude" class="form-label">Latitude</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="latitude" required>
+                </div>
+                <div class="mb-2">
+                    <label for="longitude" class="form-label">Longitude</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="longitude" required>
+                </div>
+
+                <div class="mb-2">
+                    <label for="datahora" class="form-label">Data e Hora</label>
+                    <input type="datetime-local" class="form-control form-control-sm" id="datahora" required>
+                </div>
+                <div class="mb-2">
+                    <label for="diasemchuva" class="form-label">Dias Sem Chuva</label>
+                    <input type="number" class="form-control form-control-sm" id="diasemchuva" required>
+                </div>
+                <div class="mb-2">
+                    <label for="precipitacao" class="form-label">Precipitação (mm)</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="precipitacao" required>
+                </div>
+                <div class="mb-2">
+                    <label for="riscofogo" class="form-label">Risco de Fogo</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="riscofogo" required>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Salvar Ponto</button>
+                    <button type="button" class="btn btn-success" id="btnBaixarPontos">Baixar Pontos Salvos</button>
+                </div>
+            </form>
         </div>
     </div>
         </div>
