@@ -21,10 +21,11 @@
         <div class="card-body">
             <h1 class="card-title h5">Radar Verde</h1>
             <h6 class="card-subtitle mb-2 text-muted">Parque Estadual do Cantão – Caseara/TO</h6>
-            <p class="card-text mb-1">Temperatura: <b>35°C</b></p>
-            <p class="card-text mb-1">Umidade: <b>20%</b></p>
-            <p class="card-text mb-1">Vento: <b>30 km/h</b></p>
-            <p class="card-text">Focos de Calor: <b>3</b></p>
+            <p class="card-text mb-1 ocultar">Temperatura: <b>35°C</b></p>
+            <p class="card-text mb-1 ocultar">Umidade: <b>20%</b></p>
+            <p class="card-text mb-1 ocultar">Vento: <b>30 km/h</b></p>
+            <p class="card-text mb-1">Focos de Calor: <b class="focosDeCalor">3</b></p>
+            <p class="card-text mb-1">Risco medio: <b class="riscoMedioFogo">3</b></p>
         </div>
     </div>
 
@@ -40,20 +41,20 @@
         </div>
     </div>
 
-    <div class="card mb-3">
+    <div class="card mb-3 ocultar">
         <div class="card-body">
             <h5 class="card-title">Controle de Áreas</h5>
             <div id="areaControls" class="d-grid gap-2"></div>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card ocultar">
         <div class="card-body">
             <canvas id="graficoRisco" width="250" height="150"></canvas>
         </div>
     </div>
 
-    <div class="card mt-3">
+    <div class="card mt-3 ocultar">
         <div class="card-body">
             <h5 class="card-title">Análise de Dados de Queimadas</h5>
             <canvas id="graficoDiaSemChuva"></canvas>

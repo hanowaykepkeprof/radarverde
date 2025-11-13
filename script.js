@@ -6,75 +6,75 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
   attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye'
 }).addTo(map);
 
-// Lista de riscos
-var riscos = [
-  {cor:'#2ecc71', texto:'Baixo', textoColor:'green'},
-  {cor:'#f1c40f', texto:'Médio', textoColor:'#b7950b'},
-  {cor:'#e67e22', texto:'Alto', textoColor:'#e67e22'},
-  {cor:'#e74c3c', texto:'Crítico', textoColor:'red'}
-];
+// // Lista de riscos
+// var riscos = [
+//   {cor:'#2ecc71', texto:'Baixo', textoColor:'green'},
+//   {cor:'#f1c40f', texto:'Médio', textoColor:'#b7950b'},
+//   {cor:'#e67e22', texto:'Alto', textoColor:'#e67e22'},
+//   {cor:'#e74c3c', texto:'Crítico', textoColor:'red'}
+// ];
 
-// Áreas fictícias dentro do parque
-var areas = [
-  {
-    nome: 'Área Norte',
-    coords: [
-      [-9.20,-49.99],
-      [-9.20,-49.93],
-      [-9.25,-49.93],
-      [-9.25,-49.99]
-    ],
-    riscoIndex: 0
-  },
-  {
-    nome: 'Área Central',
-    coords: [
-      [-9.28,-49.98],
-      [-9.28,-49.94],
-      [-9.33,-49.94],
-      [-9.33,-49.98]
-    ],
-    riscoIndex: 2
-  },
-  {
-    nome: 'Área Sul',
-    coords: [
-      [-9.35,-49.97],
-      [-9.35,-49.93],
-      [-9.40,-49.93],
-      [-9.40,-49.97]
-    ],
-    riscoIndex: 3
-  }
-];
+// // Áreas fictícias dentro do parque
+// var areas = [
+//   {
+//     nome: 'Área Norte',
+//     coords: [
+//       [-9.20,-49.99],
+//       [-9.20,-49.93],
+//       [-9.25,-49.93],
+//       [-9.25,-49.99]
+//     ],
+//     riscoIndex: 0
+//   },
+//   {
+//     nome: 'Área Central',
+//     coords: [
+//       [-9.28,-49.98],
+//       [-9.28,-49.94],
+//       [-9.33,-49.94],
+//       [-9.33,-49.98]
+//     ],
+//     riscoIndex: 2
+//   },
+//   {
+//     nome: 'Área Sul',
+//     coords: [
+//       [-9.35,-49.97],
+//       [-9.35,-49.93],
+//       [-9.40,-49.93],
+//       [-9.40,-49.97]
+//     ],
+//     riscoIndex: 3
+//   }
+// ];
 
-// Criar polígonos
-areas.forEach((a,i)=>{
-  a.poly = L.polygon(a.coords, {
-    color:riscos[a.riscoIndex].cor,
-    fillColor:riscos[a.riscoIndex].cor,
-    fillOpacity:0.5
-  }).addTo(map)
-    .bindPopup(a.nome+' - Risco '+riscos[a.riscoIndex].texto);
-});
+// // Criar polígonos
+// areas.forEach((a,i)=>{
+//   a.poly = L.polygon(a.coords, {
+//     color:riscos[a.riscoIndex].cor,
+//     fillColor:riscos[a.riscoIndex].cor,
+//     fillOpacity:0.5
+//   }).addTo(map)
+//     .bindPopup(a.nome+' - Risco '+riscos[a.riscoIndex].texto);
+// });
 
-// Criar controles (botões) para cada área
-var areaControlsDiv = document.getElementById('areaControls');
-areas.forEach((a,i)=>{
-  var btn = document.createElement('button');
-  btn.className = 'btn text-white';
-  btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
-  btn.style.backgroundColor = riscos[a.riscoIndex].cor;
-  btn.onclick = function(){
-    // Avança risco dessa área
-    a.riscoIndex = (a.riscoIndex + 1) % riscos.length;
-    a.poly.setStyle({color:riscos[a.riscoIndex].cor, fillColor:riscos[a.riscoIndex].cor});
-    a.poly.bindPopup(a.nome+' - Risco '+riscos[a.riscoIndex].texto);
-    btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
-    btn.style.backgroundColor = riscos[a.riscoIndex].cor;
-  };
-  areaControlsDiv.appendChild(btn);
-});
+// // Criar controles (botões) para cada área
+// var areaControlsDiv = document.getElementById('areaControls');
+// areas.forEach((a,i)=>{
+//   var btn = document.createElement('button');
+//   btn.className = 'btn text-white';
+//   btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
+//   btn.style.backgroundColor = riscos[a.riscoIndex].cor;
+//   btn.onclick = function(){
+//     // Avança risco dessa área
+//     a.riscoIndex = (a.riscoIndex + 1) % riscos.length;
+//     a.poly.setStyle({color:riscos[a.riscoIndex].cor, fillColor:riscos[a.riscoIndex].cor});
+//     a.poly.bindPopup(a.nome+' - Risco '+riscos[a.riscoIndex].texto);
+//     btn.textContent = 'Trocar Risco - '+a.nome+' (atual: '+riscos[a.riscoIndex].texto+')';
+//     btn.style.backgroundColor = riscos[a.riscoIndex].cor;
+//   };
+//   areaControlsDiv.appendChild(btn);
+// });
 
 // Gráfico histórico de risco (dados fictícios)
 var ctx = document.getElementById('graficoRisco').getContext('2d');
