@@ -233,16 +233,15 @@ btnBaixarPontos.addEventListener('click', () => {
 // --- Lógica de Filtros ---
 const filtroDataInicio = document.getElementById('filtroDataInicio');
 const filtroDataFim = document.getElementById('filtroDataFim');
-const filtroRisco = document.getElementById('filtroRisco');
 const filtroPrecipitacao = document.getElementById('filtroPrecipitacao');
 const filtroDiasSemChuva = document.getElementById('filtroDiasSemChuva');
 const formFiltros = document.getElementById('formFiltros');
 const btnLimparFiltros = document.getElementById('btnLimparFiltros');
-const riscoValorLabel = document.getElementById('riscoValorLabel');
 const precipitacaoValorLabel = document.getElementById('precipitacaoValorLabel');
 const diasSemChuvaValorLabel = document.getElementById('diasSemChuvaValorLabel');
+const legendaRiscoItems = document.querySelectorAll('#legendaRisco .list-group-item');
+let riscoFiltro = null;
 
-function updateRiscoLabel() { riscoValorLabel.textContent = `Até ${parseFloat(filtroRisco.value).toFixed(2)}`; }
 function updatePrecipitacaoLabel() { precipitacaoValorLabel.textContent = `Até ${filtroPrecipitacao.value} mm`; }
 function updateDiasSemChuvaLabel() { diasSemChuvaValorLabel.textContent = `Até ${filtroDiasSemChuva.value} dias`; }
 
@@ -251,18 +250,25 @@ function aplicarFiltros() {
 
   const dataInicio = filtroDataInicio.value ? new Date(filtroDataInicio.value + 'T00:00:00') : null;
   const dataFim = filtroDataFim.value ? new Date(filtroDataFim.value + 'T23:59:59') : null;
-  const riscoMax = parseFloat(filtroRisco.value);
   const precipitacaoMax = parseInt(filtroPrecipitacao.value, 10);
   const diasSemChuvaMax = parseInt(filtroDiasSemChuva.value, 10);
 
   const dadosFiltrados = geoJsonData.features.filter(feature => {
     const props = feature.properties;
-    const dataPonto = props.DataHora ? new Date(props.DataHora.replace(' ', 'T')) : null;
+    const dataPonto = props.DataHora ? new Date(props.DataHora.replace(/\//g, '-').replace(' ', 'T')) : null;
     if (dataInicio && (!dataPonto || dataPonto < dataInicio)) return false;
     if (dataFim && (!dataPonto || dataPonto > dataFim)) return false;
-    if (props.RiscoFogo === null || props.RiscoFogo > riscoMax) return false;
     if (props.Precipitacao === null || props.Precipitacao > precipitacaoMax) return false;
     if (props.DiaSemChuva === null || props.DiaSemChuva > diasSemChuvaMax) return false;
+
+    if (riscoFiltro) {
+        const risco = props.RiscoFogo;
+        if (riscoFiltro === 'baixo' && (risco > 0.25)) return false;
+        if (riscoFiltro === 'medio' && (risco <= 0.25 || risco > 0.50)) return false;
+        if (riscoFiltro === 'alto' && (risco <= 0.50 || risco > 0.75)) return false;
+        if (riscoFiltro === 'critico' && (risco <= 0.75)) return false;
+    }
+
     return true;
   });
 
@@ -271,27 +277,43 @@ function aplicarFiltros() {
 }
 
 function inicializarFiltros() {
-    filtroRisco.value = filtroRisco.max;
     filtroPrecipitacao.value = filtroPrecipitacao.max;
     filtroDiasSemChuva.value = filtroDiasSemChuva.max;
-    updateRiscoLabel();
     updatePrecipitacaoLabel();
     updateDiasSemChuvaLabel();
 
     filtroDataInicio.addEventListener('change', aplicarFiltros);
     filtroDataFim.addEventListener('change', aplicarFiltros);
-    filtroRisco.addEventListener('input', () => { updateRiscoLabel(); aplicarFiltros(); });
     filtroPrecipitacao.addEventListener('input', () => { updatePrecipitacaoLabel(); aplicarFiltros(); });
     filtroDiasSemChuva.addEventListener('input', () => { updateDiasSemChuvaLabel(); aplicarFiltros(); });
+
+    legendaRiscoItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const riscoSelecionado = item.dataset.risco;
+
+            if (riscoFiltro === riscoSelecionado) {
+                riscoFiltro = null;
+                item.classList.remove('active');
+            } else {
+                legendaRiscoItems.forEach(i => i.classList.remove('active'));
+                riscoFiltro = riscoSelecionado;
+                item.classList.add('active');
+            }
+            aplicarFiltros();
+        });
+    });
+
     btnLimparFiltros.addEventListener('click', (e) => {
         e.preventDefault();
         formFiltros.reset();
-        filtroRisco.value = filtroRisco.max;
         filtroPrecipitacao.value = filtroPrecipitacao.max;
         filtroDiasSemChuva.value = filtroDiasSemChuva.max;
-        updateRiscoLabel();
         updatePrecipitacaoLabel();
         updateDiasSemChuvaLabel();
+
+        riscoFiltro = null;
+        legendaRiscoItems.forEach(i => i.classList.remove('active'));
+
         aplicarFiltros();
     });
     aplicarFiltros();
