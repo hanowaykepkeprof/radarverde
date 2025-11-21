@@ -32,12 +32,41 @@
     <div class="card mb-3">
         <div class="card-body">
             <h5 class="card-title">Legenda de Risco</h5>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #2ecc71;"></span> Baixo</li>
-                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #f1c40f;"></span> Médio</li>
-                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #e67e22;"></span> Alto</li>
-                <li class="list-group-item d-flex align-items-center"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #e74c3c;"></span> Crítico</li>
+            <ul id="legendaRisco" class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center" data-risco="baixo"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #2ecc71;"></span> Baixo</li>
+                <li class="list-group-item d-flex align-items-center" data-risco="medio"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #f1c40f;"></span> Médio</li>
+                <li class="list-group-item d-flex align-items-center" data-risco="alto"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #e67e22;"></span> Alto</li>
+                <li class="list-group-item d-flex align-items-center" data-risco="critico"><span class="d-inline-block rounded-circle me-2" style="width: 20px; height: 20px; background-color: #e74c3c;"></span> Crítico</li>
             </ul>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Filtrar Pontos</h5>
+            <form id="formFiltros">
+                <div class="row g-2">
+                    <div class="col-md-6 mb-2">
+                        <label for="filtroDataInicio" class="form-label">Data Início</label>
+                        <input type="date" class="form-control form-control-sm" id="filtroDataInicio">
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label for="filtroDataFim" class="form-label">Data Fim</label>
+                        <input type="date" class="form-control form-control-sm" id="filtroDataFim">
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label for="filtroPrecipitacao" class="form-label">Precipitação (mm): <span id="precipitacaoValorLabel">Todos</span></label>
+                    <input type="range" class="form-range" id="filtroPrecipitacao" min="0" max="50" step="1">
+                </div>
+                <div class="mb-2">
+                    <label for="filtroDiasSemChuva" class="form-label">Dias Sem Chuva: <span id="diasSemChuvaValorLabel">Todos</span></label>
+                    <input type="range" class="form-range" id="filtroDiasSemChuva" min="0" max="100" step="1">
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="reset" class="btn btn-secondary" id="btnLimparFiltros">Limpar Filtros</button>
+                </div>
+            </form>
         </div>
     </div>
 

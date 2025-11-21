@@ -20,3 +20,18 @@
   left: 50px; /* Deslocado para a direita para não sobrepor os controlos de zoom */
   z-index: 401; /* Garante que o botão fique acima dos controles do mapa Leaflet */
 }
+
+#legendaRisco .list-group-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+#legendaRisco .list-group-item:hover {
+  background-color: #f0f0f0;
+}
+
+#legendaRisco .list-group-item.active {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
